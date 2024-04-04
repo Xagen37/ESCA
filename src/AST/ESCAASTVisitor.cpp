@@ -151,7 +151,7 @@ bool ESCAASTVisitor::ProcessStmt( clang::Stmt *stmt )
             {
                 for( auto v : group )
                 {
-                    ProcessDeclaration(dynamic_cast<VarDecl *>(v));
+                    ProcessDeclaration(dyn_cast<VarDecl>(v));
                 }
             }
         }

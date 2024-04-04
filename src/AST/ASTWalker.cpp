@@ -10,7 +10,8 @@
 
 #include <clang/AST/ASTContext.h>
 
-#include <llvm/Support/Host.h>
+// #include <llvm/Support/Host.h>
+#include <llvm/TargetParser/Host.h>
 #include <llvm/IR/Function.h>
 #include <iostream>
 
@@ -26,8 +27,9 @@ ASTWalker::ASTWalker( const std::vector<std::string> &paths )
     ik = std::make_shared<clang::InputKind>(clang::Language::CXX, clang::InputKind::Source, false);
     targetOptions = std::make_shared<clang::TargetOptions>();
     targetOptions->Triple = llvm::sys::getDefaultTargetTriple();
-    clang::CompilerInvocation::setLangDefaults(languageOptions, *ik, triple, ppopts);
-    languageOptions.ImplicitInt = 1;
+    clang::LangOptions::setLangDefaults(languageOptions, ik->getLanguage(), triple, ppopts.Includes);
+    // It seems, that this check was removed from LangOptions in clang14+
+    // languageOptions.ImplicitInt = 1;
 
 }
 
@@ -95,21 +97,25 @@ void ASTWalker::makeContext()
             triple
     );
 
+    codeGenOptions = std::make_unique<clang::CodeGenOptions>();
+
     clang::InitializePreprocessor(
             *preprocessor,
             *pOpts,
             containerReader,
-            frontendOptions
+            frontendOptions//,
+            // *codeGenOptions
     );
 
 }
 
 bool ASTWalker::WalkAST( const std::string &fileName )
 {
-    llvm::ErrorOr<const clang::FileEntry *> pFile = fileManager->getFile(fileName);
+    // llvm::
+    llvm::Expected<clang::FileEntryRef> pFile = fileManager->getFileRef(fileName);
     if( !pFile )
     {
-        std::cerr << pFile.getError().message() << ", file: " << fileName << std::endl;
+        std::cerr << llvm::toString(std::move(pFile.takeError())) << ", file: " << fileName << std::endl;
         return false;
     }
 
@@ -129,7 +135,7 @@ bool ASTWalker::WalkAST( const std::string &fileName )
     builtinContext.InitializeTarget(targetInfo, nullptr);
 
     astContext = std::make_unique<clang::ASTContext>(languageOptions, *sourceManager, identifierTable, selectorTable,
-                                                     builtinContext);
+                                                     builtinContext, clang::TranslationUnitKind::TU_Complete);
     astContext->InitBuiltinTypes(targetInfo);
 //    astConsumer->Initialize(*astContext);
     pTextDiagnosticPrinter->BeginSourceFile(languageOptions, preprocessor);
@@ -183,7 +189,7 @@ void ASTWalker::WalkAST( const std::vector<std::string> &files )
 
 void ASTWalker::DumpStmt( clang::Stmt *s )
 {
-    s->dump(llvm::errs(), astContext->getSourceManager());
+    // s->dump(llvm::errs(), astContext->getSourceManager());
     s->dump();
 }
 
