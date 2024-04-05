@@ -31,6 +31,10 @@ private:
 
     void ProcessVarAssigmentFromFoo( VarAssigmentFromFooStatement *statement );
 
+    void ProcessNullAssign(NullAssign *statement);
+
+    void ProcessUseVarClassPtr(Target::UseVarClassPtr *statement);
+
     void ProcessVarAssigmentFromPointer( VarAssigmentFromPointerStatement *statement );
 
     void ProcessVarAssigmentNew( VarAssigmentNewStatement *statement );

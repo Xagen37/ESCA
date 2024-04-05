@@ -32,6 +32,16 @@ VarAssigmentFromFooStatement::VarAssigmentFromFooStatement( const std::string &v
 {
 }
 
+UseVarClassPtr::UseVarClassPtr( const std::string &varName, const std::string &loc )
+        : varName(varName), loc(loc)
+{
+}
+
+NullAssign::NullAssign( const std::string &varName, const std::string &loc )
+        : varName(varName), loc(loc)
+{
+}
+
 
 VarAssigmentFromPointerStatement::VarAssigmentFromPointerStatement( const std::string &varName,
                                                                     const std::string &rhsName,

@@ -85,42 +85,62 @@ void AnalyzeProcess::ProcessStatement( Statement *stmt )
     {
         case COMPOUND:
         {
+            // std::cout << "COMPOUND\n";
             ProcessCompound(llvm::dyn_cast<CompoundStatement>(stmt));
+            break;
+        }
+        case STATEMENTS::UseVarClassPtr :
+        {
+            // std::cout << "UseVarClassPtr\n";
+            ProcessUseVarClassPtr(llvm::dyn_cast<Target::UseVarClassPtr>(stmt));
+            break;
+        }
+        case STATEMENTS::NULL_ASSIGN:
+        {
+            // std::cout << "NullAssign\n";
+            ProcessNullAssign(llvm::dyn_cast<NullAssign>(stmt));
             break;
         }
         case VarAssigmentNew:
         {
+            // std::cout << "VarAssigmentNew\n";
             ProcessVarAssigmentNew(llvm::dyn_cast<VarAssigmentNewStatement>(stmt));
             break;
         }
         case VarAssigmentFromFoo:
         {
+            // std::cout << "VarAssigmentFromFoo\n";
             ProcessVarAssigmentFromFoo(llvm::dyn_cast<VarAssigmentFromFooStatement>(stmt));
             break;
         }
         case VarAssigmentFromPointer:
         {
+            // std::cout << "VarAssigmentFromPointer\n";
             ProcessVarAssigmentFromPointer(llvm::dyn_cast<VarAssigmentFromPointerStatement>(stmt));
             break;
         }
         case DELETE:
         {
+            // std::cout << "DELETE\n";
             ProcessDelete(llvm::dyn_cast<DeleteStatement>(stmt));
             break;
         }
         case IF:
         {
+            // std::cout << "IF\n";
             ProcessIF(llvm::dyn_cast<IfStatement>(stmt));
             break;
         }
         case TRY:
         {
+            // std::cout << "TRY\n";
             ProcessCompound(llvm::dyn_cast<TryStatement>(stmt)->trySt);
             ProcessCompound(llvm::dyn_cast<TryStatement>(stmt)->catchSt);
             break;
         }
         case Return:
         {
+            // std::cout << "Return\n";
             ProcessReturn(llvm::dyn_cast<ReturnStatement>(stmt));
             break;
         }
@@ -137,8 +157,10 @@ void AnalyzeProcess::ProcessCompound( Target::CompoundStatement *statement )
 {
     if( !statement )
         return;
+    // std::cout << "Process compound:" << std::endl;
     for( auto st : statement->GetStates())
     {
+        // std::cout << "    Process\n";
         ProcessStatement(st);
     }
 }
@@ -162,6 +184,7 @@ void AnalyzeProcess::ProcessVarAssigmentNew( VarAssigmentNewStatement *statement
         lhsCnt.meta = VAR_POINTER;
         state.allocPointers.push_back(vv);
     }
+    state.notNullPtrs.push_back(vv);
     //Отметить new.
     processContext->allocatedVars.push_back(vv);
 
@@ -169,6 +192,24 @@ void AnalyzeProcess::ProcessVarAssigmentNew( VarAssigmentNewStatement *statement
     state.formulae.push_back(vvFormulae);
 
     processContext->fsm->AddStateToLeaves(state, processContext->fairPred);
+    // std::cout << "    Processed VarAssignmentNew " << varName << std::endl;
+}
+
+void AnalyzeProcess::ProcessNullAssign(NullAssign *statement)
+{
+    auto varName = statement->varName;
+    PtrCounter &lhsCnt = processContext->variables[ varName ];
+    ++(lhsCnt.count);
+
+    StateFSM state;
+    VersionedVariable vv(varName, statement->loc, VAR_POINTER, lhsCnt.count);
+    state.nullPtrs.push_back(vv);
+
+    std::shared_ptr<VariableSMT> vvFormulae(new VariableSMT(vv));
+    state.formulae.push_back(vvFormulae);
+
+    processContext->fsm->AddStateToLeaves(state, processContext->fairPred);
+    // std::cout << "    Processed ProcessNullAssign " << varName << std::endl;
 }
 
 void AnalyzeProcess::ProcessVarAssigmentFromFoo( VarAssigmentFromFooStatement *statement )
@@ -197,6 +238,7 @@ void AnalyzeProcess::ProcessVarAssigmentFromFoo( VarAssigmentFromFooStatement *s
 
         processContext->fsm->AddStateToLeaves(state, processContext->fairPred);
     }
+    // std::cout << "    Processeed ProcessVarAssigmentFromFoo " << statement->varName << std::endl;
 }
 
 void AnalyzeProcess::ProcessVarAssigmentFromPointer( VarAssigmentFromPointerStatement *statement )
@@ -226,6 +268,7 @@ void AnalyzeProcess::ProcessVarAssigmentFromPointer( VarAssigmentFromPointerStat
     state.formulae.push_back(bs);
 
     processContext->fsm->AddStateToLeaves(state, processContext->fairPred);
+    // std::cout << "Processed ProcessVarAssigmentFromPointer " << varName << std::endl;
 }
 
 
@@ -235,6 +278,18 @@ void AnalyzeProcess::ProcessDelete( DeleteStatement *statement )
     VersionedVariable vv(statement->name, "unused", cntIter->second.meta, cntIter->second.count);
 
     processContext->fsm->AddDeleteState(vv, statement->isArray);
+}
+
+void AnalyzeProcess::ProcessUseVarClassPtr(Target::UseVarClassPtr *statement)
+{
+    auto varName = statement->varName;
+    PtrCounter &lhsCnt = processContext->variables[varName];
+
+    VersionedVariable lhsVar(varName, statement->loc, VAR_POINTER, lhsCnt.count);
+
+    processContext->fsm->AddUseClassPtrState(lhsVar);
+
+    // std::cout << "Processed ProcessUseVarClassPtr " << varName << std::endl;
 }
 
 void AnalyzeProcess::ProcessIF( IfStatement *statement )

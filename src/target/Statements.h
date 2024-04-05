@@ -24,6 +24,8 @@ enum STATEMENTS
     Return,
     IF,
     TRY,
+    UseVarClassPtr,
+    NULL_ASSIGN,
     UNKNOWN,
 };
 
@@ -88,7 +90,6 @@ private:
     std::vector<Statement *> statements;
 };
 
-
 class VarAssigmentFromFooStatement : public llvm::RTTIExtends<VarAssigmentFromFooStatement, Statement>
 {
 public:
@@ -108,6 +109,38 @@ public:
 };
 
 
+class UseVarClassPtr : public llvm::RTTIExtends<UseVarClassPtr, Statement>
+{
+public:
+    inline static char ID = 0;
+    UseVarClassPtr(const std::string &varName, const std::string &loc);
+
+    STATEMENTS GetType() override
+    {
+        return STATEMENTS::UseVarClassPtr;
+    }
+
+    std::string varName;
+    std::string loc;
+};
+
+
+class NullAssign : public llvm::RTTIExtends<NullAssign, Statement>
+{
+public:
+    inline static char ID = 0;
+    NullAssign(const std::string &varName, const std::string &loc);
+
+    STATEMENTS GetType() override
+    {
+        return STATEMENTS::NULL_ASSIGN;
+    }
+
+    std::string varName;
+    std::string loc;
+};
+
+
 class VarAssigmentFromPointerStatement : public llvm::RTTIExtends<VarAssigmentFromPointerStatement, Statement>
 {
 public:
@@ -119,7 +152,7 @@ public:
         return STATEMENTS::VarAssigmentFromPointer;
     }
 
-    inline static char ID = 0;;
+    inline static char ID = 0;
     std::string varName;
     std::string loc;
     std::string rhsName;

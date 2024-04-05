@@ -223,8 +223,13 @@ bool ESCAASTVisitor::ProcessStmt( clang::Stmt *stmt )
             {
                 if (auto declRef = dyn_cast<DeclRefExpr>(casted->getSubExprAsWritten()))
                 {
-                    std::cout << "Found sus var: " << declRef->getFoundDecl()->getNameAsString()
-                              << " at pos: " << getLocation(stmt) << std::endl;
+
+                    std::string varName = declRef->getFoundDecl()->getNameAsString();
+                    std::string loc = getLocation(stmt);
+                    // std::cout << "Found sus var: " << varName << " at pos: " << loc << std::endl;
+                    context.AddToLast(
+                        new Target::UseVarClassPtr(varName, loc)
+                    );
                 }
             }
         }
@@ -275,8 +280,12 @@ bool ESCAASTVisitor::ProcessCallFunction( clang::CallExpr *rhsRefExpr )
             {
                 if (auto declRef = dyn_cast<DeclRefExpr>(casted->getSubExprAsWritten()))
                 {
-                    std::cout << "Found sus var: " << declRef->getFoundDecl()->getNameAsString()
-                              << " at pos: " << getLocation(rhsRefExpr) << std::endl;
+                    std::string varName = declRef->getFoundDecl()->getNameAsString();
+                    std::string loc = getLocation(rhsRefExpr);
+                    // std::cout << "Found sus var: " << varName << " at pos: " << loc << std::endl;
+                    context.AddToLast(
+                        new Target::UseVarClassPtr(varName, loc)
+                    );
                 }
             }
         }
@@ -366,6 +375,16 @@ bool ESCAASTVisitor::ProcessAssignment( const clang::Stmt *init, const std::stri
         init = castSt->getSubExpr();
     }
 
+    // nullptr check
+    // struct A *a_ptr = nullptr;
+    if( auto rhsRefExpr = dyn_cast<CXXNullPtrLiteralExpr>(init))
+    {
+        // std::cout << "Nullptr Literal spotted" << std::endl;
+        context.AddToLast(
+            new Target::NullAssign(lhsName, getLocation(init))
+        );
+    }
+
 
     // для указателей
     // пример:
@@ -408,6 +427,7 @@ bool ESCAASTVisitor::ProcessAssignment( const clang::Stmt *init, const std::stri
             return true;
         }
     }
+
     //ref->get
     return true;
 
