@@ -223,7 +223,6 @@ bool ESCAASTVisitor::ProcessStmt( clang::Stmt *stmt )
             {
                 if (auto declRef = dyn_cast<DeclRefExpr>(casted->getSubExprAsWritten()))
                 {
-
                     std::string varName = declRef->getFoundDecl()->getNameAsString();
                     std::string loc = getLocation(stmt);
                     // std::cout << "Found sus var: " << varName << " at pos: " << loc << std::endl;
@@ -376,7 +375,7 @@ bool ESCAASTVisitor::ProcessAssignment( const clang::Stmt *init, const std::stri
     }
 
     // nullptr check
-    // struct A *a_ptr = nullptr;
+    // T *a_ptr = nullptr;
     if( auto rhsRefExpr = dyn_cast<CXXNullPtrLiteralExpr>(init))
     {
         // std::cout << "Nullptr Literal spotted" << std::endl;

@@ -145,10 +145,35 @@ void FSM::AddUseClassPtrState(const VersionedVariable &var)
             int snullId = StateToLeaf(i, snull);
 
             StateFSM &nullState = states[ snullId ];
-            const VersionedVariable &v(var);
+
+            VarStorage nullCopy = nullState.nullPtrs;
+            std::sort(nullCopy.begin(), nullCopy.end());
+            VarStorage notNullCopy = nullState.notNullPtrs;
+            std::sort(notNullCopy.begin(), notNullCopy.end());
+
+            VarStorage notInitNull;
+            for (const auto &var : nullCopy)
+            {
+                bool found = false;
+                for (const auto &initted : notNullCopy)
+                {
+                    if (var.Name() == initted.Name())
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    notInitNull.push_back(var);
+                }
+            }
 
             //write formulae.
-            int size = nullState.nullPtrs.size();
+            int size = notInitNull.size();
+            // std::cout << "Null: " << nullCopy.size() <<
+            //              ", notNull: " << notNullCopy.size() <<
+            //              ", diff: " << size << std::endl;
             if (!size)
             {
                 continue;
@@ -156,7 +181,7 @@ void FSM::AddUseClassPtrState(const VersionedVariable &var)
             FormulaStorage f = nullState.formulae;
             for( int i = 0; i < size; ++i )
             {
-                std::shared_ptr<BinarySMT> form(new BinarySMT(v, nullState.nullPtrs[ i ], EqualSMT, false));
+                std::shared_ptr<BinarySMT> form(new BinarySMT(var, notInitNull[ i ], EqualSMT, false));
                 f.push_back(form);
             }
 
@@ -256,6 +281,7 @@ int FSM::StateToLeaf( int leafId, const StateFSM &newState, const std::string &p
     MoveVector(leaf.delArrays, s.delArrays);
     MoveVector(leaf.delPointers, s.delPointers);
     MoveVector(leaf.nullPtrs, s.nullPtrs);
+    MoveVector(leaf.notNullPtrs, s.notNullPtrs);
 
     // сохраняем новое состояние и переход до него
     states.push_back(s);

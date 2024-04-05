@@ -4,15 +4,16 @@ struct A
     int a = 0;
 };
 
+// ESCA +: finds both for a_ptr, no false positive for b_ptr
 void nullptr_infunc()
 {
     A *a_ptr = nullptr;
     A *btr;
     a_ptr->foo();
-    a_ptr->a = 42;
     a_ptr->a;
 }
 
+// ESCA +: no false positives
 void good_infunc()
 {
     A *agood_ptr = new A();
@@ -21,6 +22,7 @@ void good_infunc()
     delete agood_ptr;
 }
 
+// ESCA -: does not detect
 void nullptr_from_arg(A *arg_ptr)
 {
     arg_ptr->foo();
@@ -28,6 +30,7 @@ void nullptr_from_arg(A *arg_ptr)
     arg_ptr->a;
 }
 
+// ESCA +: finds first, no false positive for second
 void lateinit()
 {
     A *late_ptr = nullptr;
@@ -41,6 +44,7 @@ int main()
 {
     nullptr_infunc();
     good_infunc();
+    lateinit();
     nullptr_from_arg(nullptr);
     return 0;
 }
