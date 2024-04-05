@@ -5,11 +5,14 @@
 /// @author alexust27
 /// Contact: ustinov1998s@gmail.com
 ///
-
+#pragma once
 #include <map>
 #include <set>
+#include <string>
 #include <vector>
 
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/ExtensibleRTTI.h"
 
 enum STATEMENTS
 {
@@ -27,10 +30,10 @@ enum STATEMENTS
 namespace Target
 {
 /// @brief Общий класс для всех состояний анализируемого кода
-class Statement
+class Statement : public llvm::RTTIExtends<Statement, llvm::RTTIRoot>
 {
 public:
-
+    inline static char ID = 0;
     virtual STATEMENTS GetType()
     {
         return STATEMENTS::UNKNOWN;
@@ -38,11 +41,13 @@ public:
 
     virtual ~Statement() = default;
 };
+// char Statement::ID = 0;
 
 /// @brief Составное состояние, содержит несколько состояний
-class CompoundStatement : public Statement
+class CompoundStatement : public llvm::RTTIExtends<CompoundStatement, Statement>
 {
 public:
+    inline static char ID = 0;;
     CompoundStatement() = default;
 
     void AddState( Statement *st );
@@ -84,7 +89,7 @@ private:
 };
 
 
-class VarAssigmentFromFooStatement : public Statement
+class VarAssigmentFromFooStatement : public llvm::RTTIExtends<VarAssigmentFromFooStatement, Statement>
 {
 public:
     VarAssigmentFromFooStatement( const std::string &varName, const std::string &fooName, const std::string &loc,
@@ -95,6 +100,7 @@ public:
         return STATEMENTS::VarAssigmentFromFoo;
     }
 
+    inline static char ID = 0;;
     bool isDecl;
     std::string varName;
     std::string fooName;
@@ -102,7 +108,7 @@ public:
 };
 
 
-class VarAssigmentFromPointerStatement : public Statement
+class VarAssigmentFromPointerStatement : public llvm::RTTIExtends<VarAssigmentFromPointerStatement, Statement>
 {
 public:
     VarAssigmentFromPointerStatement( const std::string &varName, const std::string &rhsName,
@@ -113,6 +119,7 @@ public:
         return STATEMENTS::VarAssigmentFromPointer;
     }
 
+    inline static char ID = 0;;
     std::string varName;
     std::string loc;
     std::string rhsName;
@@ -120,7 +127,7 @@ public:
 };
 
 /// auto x = new X;
-class VarAssigmentNewStatement : public Statement
+class VarAssigmentNewStatement : public llvm::RTTIExtends<VarAssigmentNewStatement, Statement>
 {
 public:
     VarAssigmentNewStatement( const std::string &varName, bool isArray, const std::string &loc, bool isDecl );
@@ -130,6 +137,7 @@ public:
         return STATEMENTS::VarAssigmentNew;
     }
 
+    inline static char ID = 0;;
     std::string varName;
     std::string loc;
     bool isArray;
@@ -137,7 +145,7 @@ public:
 };
 
 
-class DeleteStatement : public Statement
+class DeleteStatement : public llvm::RTTIExtends<DeleteStatement, Statement>
 {
 public:
     DeleteStatement( const std::string &name, bool isArray );
@@ -147,12 +155,13 @@ public:
         return STATEMENTS::DELETE;
     }
 
+    inline static char ID = 0;;
     std::string name;
     bool isArray;
 };
 
 
-class ReturnStatement : public Statement
+class ReturnStatement : public llvm::RTTIExtends<ReturnStatement, Statement>
 {
 public:
     explicit ReturnStatement( const std::string &returnVarName );
@@ -162,10 +171,11 @@ public:
         return STATEMENTS::Return;
     }
 
+    inline static char ID = 0;;
     std::string returnVarName;
 };
 
-class IfStatement : public Statement
+class IfStatement : public llvm::RTTIExtends<IfStatement, Statement>
 {
 public:
     IfStatement( Target::CompoundStatement *thenSt, Target::CompoundStatement *elseSt, const std::string &condStr,
@@ -184,6 +194,7 @@ public:
             delete thenSt;
     }
 
+    inline static char ID = 0;;
     CompoundStatement *thenSt = nullptr;
     CompoundStatement *elseSt = nullptr;
     std::string condStr;
@@ -191,7 +202,7 @@ public:
 };
 
 
-class TryStatement : public Statement
+class TryStatement : public llvm::RTTIExtends<TryStatement, Statement>
 {
 public:
     TryStatement( CompoundStatement *trySt, CompoundStatement *catchSt ) : trySt(trySt), catchSt(catchSt)
@@ -211,7 +222,7 @@ public:
             delete catchSt;
     }
 
-
+    inline static char ID = 0;;
     CompoundStatement *trySt = nullptr;
     CompoundStatement *catchSt = nullptr;
 };

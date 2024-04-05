@@ -6,8 +6,9 @@
 /// Contact: ustinov1998s@gmail.com
 ///
 
-#include "common.h"
+#include <string>
 
+#include "common.h"
 
 void CommonStorage::SetIncludeDirs( const std::vector<std::string> &inclPaths )
 {

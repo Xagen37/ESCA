@@ -122,7 +122,7 @@ bool Context::CreateIfStatement( bool hasElse, const std::string &cond, const st
 void Context::SwitchToElse()
 {
     compoundStatementsStack.pop_back(); // убираем then
-    auto ifStmt = dynamic_cast<IfStatement *>(compoundStatementsStack.back()->GetStates().back());
+    auto ifStmt = llvm::dyn_cast<IfStatement>(compoundStatementsStack.back()->GetStates().back());
     assert(ifStmt); // последний положенный должен быть if
     if( ifStmt->elseSt && exceptionName.empty())
     {
@@ -157,7 +157,7 @@ bool Context::CreateTryStatement()
 void Context::CreateCatchStatement()
 {
     compoundStatementsStack.pop_back(); // убираем блок try
-    auto tryStmt = dynamic_cast<TryStatement *>(compoundStatementsStack.back()->GetStates().back());
+    auto tryStmt = llvm::dyn_cast<TryStatement>(compoundStatementsStack.back()->GetStates().back());
     assert(tryStmt); // последний положенный должен быть try
     auto op = compoundStatementsStack.back()->GetOptions();
     op.isTry = false;

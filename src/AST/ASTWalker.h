@@ -56,6 +56,7 @@ private:
     std::shared_ptr<clang::PreprocessorOptions> pOpts;
     llvm::Triple triple;
     clang::PreprocessorOptions ppopts;
+    std::unique_ptr<clang::CodeGenOptions> codeGenOptions;
     std::shared_ptr<clang::TargetOptions> targetOptions;
     clang::DiagnosticOptions diagnosticOptions;
     clang::LangOptions languageOptions;

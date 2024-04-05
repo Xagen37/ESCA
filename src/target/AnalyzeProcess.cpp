@@ -12,6 +12,9 @@
 #include <BinarySMT.h>
 #include <iostream>
 
+#include "llvm/Support/Casting.h"
+
+
 AnalyzeProcess::AnalyzeProcess()
 {
     allFunctions = Context::Instance().GetAllFunction();
@@ -82,43 +85,43 @@ void AnalyzeProcess::ProcessStatement( Statement *stmt )
     {
         case COMPOUND:
         {
-            ProcessCompound(dynamic_cast<CompoundStatement *>(stmt));
+            ProcessCompound(llvm::dyn_cast<CompoundStatement>(stmt));
             break;
         }
         case VarAssigmentNew:
         {
-            ProcessVarAssigmentNew(dynamic_cast<VarAssigmentNewStatement *>(stmt));
+            ProcessVarAssigmentNew(llvm::dyn_cast<VarAssigmentNewStatement>(stmt));
             break;
         }
         case VarAssigmentFromFoo:
         {
-            ProcessVarAssigmentFromFoo(dynamic_cast<VarAssigmentFromFooStatement *>(stmt));
+            ProcessVarAssigmentFromFoo(llvm::dyn_cast<VarAssigmentFromFooStatement>(stmt));
             break;
         }
         case VarAssigmentFromPointer:
         {
-            ProcessVarAssigmentFromPointer(dynamic_cast<VarAssigmentFromPointerStatement *>(stmt));
+            ProcessVarAssigmentFromPointer(llvm::dyn_cast<VarAssigmentFromPointerStatement>(stmt));
             break;
         }
         case DELETE:
         {
-            ProcessDelete(dynamic_cast<DeleteStatement *>(stmt));
+            ProcessDelete(llvm::dyn_cast<DeleteStatement>(stmt));
             break;
         }
         case IF:
         {
-            ProcessIF(dynamic_cast<IfStatement *>(stmt));
+            ProcessIF(llvm::dyn_cast<IfStatement>(stmt));
             break;
         }
         case TRY:
         {
-            ProcessCompound(dynamic_cast<TryStatement *>(stmt)->trySt);
-            ProcessCompound(dynamic_cast<TryStatement *>(stmt)->catchSt);
+            ProcessCompound(llvm::dyn_cast<TryStatement>(stmt)->trySt);
+            ProcessCompound(llvm::dyn_cast<TryStatement>(stmt)->catchSt);
             break;
         }
         case Return:
         {
-            ProcessReturn(dynamic_cast<ReturnStatement *>(stmt));
+            ProcessReturn(llvm::dyn_cast<ReturnStatement>(stmt));
             break;
         }
         default:
