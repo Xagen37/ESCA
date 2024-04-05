@@ -3,6 +3,8 @@
 #include <vector>
 #include <set>
 
+#include <iostream>
+
 #include <llvm/Support/raw_ostream.h>
 #include <clang/AST/PrettyPrinter.h>
 #include <clang/AST/ASTContext.h>
@@ -124,7 +126,7 @@ bool ESCAASTVisitor::ProcessStmt( clang::Stmt *stmt )
         return true;
     }
 
-    //stmt->dump();
+    // stmt->dump();
     using namespace clang;
 
     if( auto compSt = dyn_cast<CompoundStmt>(stmt))
@@ -210,7 +212,22 @@ bool ESCAASTVisitor::ProcessStmt( clang::Stmt *stmt )
     }
     else if( auto rhsRefExpr = dyn_cast<CallExpr>(stmt))
     {
+        // stmt->dump();
         ProcessCallFunction(rhsRefExpr);
+    }
+    else if (auto memExpr = dyn_cast<MemberExpr>(stmt))  // check a.x and a->x
+    {
+        if (memExpr->getBase()->getType()->isAnyPointerType())
+        {
+            if (auto casted = dyn_cast<ImplicitCastExpr>(memExpr->getBase()))
+            {
+                if (auto declRef = dyn_cast<DeclRefExpr>(casted->getSubExprAsWritten()))
+                {
+                    std::cout << "Found sus var: " << declRef->getFoundDecl()->getNameAsString()
+                              << " at pos: " << getLocation(stmt) << std::endl;
+                }
+            }
+        }
     }
 
     return true;
@@ -248,6 +265,22 @@ bool ESCAASTVisitor::ProcessCompound( clang::CompoundStmt *body, bool createOnSt
 bool ESCAASTVisitor::ProcessCallFunction( clang::CallExpr *rhsRefExpr )
 {
     using namespace clang;
+
+    if (auto memberCallExpr = dyn_cast<CXXMemberCallExpr>(rhsRefExpr))
+    {
+        auto caller = memberCallExpr->getImplicitObjectArgument();
+        if (caller->getType()->isAnyPointerType())
+        {
+            if (auto casted = dyn_cast<ImplicitCastExpr>(caller))
+            {
+                if (auto declRef = dyn_cast<DeclRefExpr>(casted->getSubExprAsWritten()))
+                {
+                    std::cout << "Found sus var: " << declRef->getFoundDecl()->getNameAsString()
+                              << " at pos: " << getLocation(rhsRefExpr) << std::endl;
+                }
+            }
+        }
+    }
 
     auto callee = rhsRefExpr->getCallee();
     if( auto memExpr = dyn_cast<MemberExpr>(callee))

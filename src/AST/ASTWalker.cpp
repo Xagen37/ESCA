@@ -111,7 +111,6 @@ void ASTWalker::makeContext()
 
 bool ASTWalker::WalkAST( const std::string &fileName )
 {
-    // llvm::
     llvm::Expected<clang::FileEntryRef> pFile = fileManager->getFileRef(fileName);
     if( !pFile )
     {
@@ -190,6 +189,7 @@ void ASTWalker::WalkAST( const std::vector<std::string> &files )
 void ASTWalker::DumpStmt( clang::Stmt *s )
 {
     // s->dump(llvm::errs(), astContext->getSourceManager());
+    s->dump(llvm::errs(), *astContext);
     s->dump();
 }
 
