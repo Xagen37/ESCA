@@ -88,6 +88,16 @@ void AnalyzeProcess::ProcessStatement( Statement *stmt )
             ProcessCompound(llvm::dyn_cast<CompoundStatement>(stmt));
             break;
         }
+        case STATEMENTS::UseVarClassPtr :
+        {
+            ProcessUseVarClassPtr(llvm::dyn_cast<Target::UseVarClassPtr>(stmt));
+            break;
+        }
+        case STATEMENTS::NULL_ASSIGN:
+        {
+            ProcessNullAssign(llvm::dyn_cast<NullAssign>(stmt));
+            break;
+        }
         case VarAssigmentNew:
         {
             ProcessVarAssigmentNew(llvm::dyn_cast<VarAssigmentNewStatement>(stmt));
@@ -162,8 +172,25 @@ void AnalyzeProcess::ProcessVarAssigmentNew( VarAssigmentNewStatement *statement
         lhsCnt.meta = VAR_POINTER;
         state.allocPointers.push_back(vv);
     }
+    state.notNullPtrs.push_back(vv);
     //Отметить new.
     processContext->allocatedVars.push_back(vv);
+
+    std::shared_ptr<VariableSMT> vvFormulae(new VariableSMT(vv));
+    state.formulae.push_back(vvFormulae);
+
+    processContext->fsm->AddStateToLeaves(state, processContext->fairPred);
+}
+
+void AnalyzeProcess::ProcessNullAssign(NullAssign *statement)
+{
+    auto varName = statement->varName;
+    PtrCounter &lhsCnt = processContext->variables[ varName ];
+    ++(lhsCnt.count);
+
+    StateFSM state;
+    VersionedVariable vv(varName, statement->loc, VAR_POINTER, lhsCnt.count);
+    state.nullPtrs.push_back(vv);
 
     std::shared_ptr<VariableSMT> vvFormulae(new VariableSMT(vv));
     state.formulae.push_back(vvFormulae);
@@ -235,6 +262,16 @@ void AnalyzeProcess::ProcessDelete( DeleteStatement *statement )
     VersionedVariable vv(statement->name, "unused", cntIter->second.meta, cntIter->second.count);
 
     processContext->fsm->AddDeleteState(vv, statement->isArray);
+}
+
+void AnalyzeProcess::ProcessUseVarClassPtr(Target::UseVarClassPtr *statement)
+{
+    auto varName = statement->varName;
+    PtrCounter &lhsCnt = processContext->variables[varName];
+
+    VersionedVariable lhsVar(varName, statement->loc, VAR_POINTER, lhsCnt.count);
+
+    processContext->fsm->AddUseClassPtrState(lhsVar);
 }
 
 void AnalyzeProcess::ProcessIF( IfStatement *statement )

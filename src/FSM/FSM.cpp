@@ -133,6 +133,71 @@ void FSM::AddDeleteState( const VersionedVariable &var, bool arrayForm )
     }
 }
 
+void FSM::AddUseClassPtrState(const VersionedVariable &var)
+{
+    int size = states.size();
+    for( int i = 0; i < size; ++i )
+    {
+        if( states[ i ].outgoing.empty())
+        {
+            StateFSM snull;
+
+            int snullId = StateToLeaf(i, snull);
+
+            StateFSM &nullState = states[ snullId ];
+
+            VarStorage nullCopy = nullState.nullPtrs;
+            std::sort(nullCopy.begin(), nullCopy.end());
+            VarStorage notNullCopy = nullState.notNullPtrs;
+            std::sort(notNullCopy.begin(), notNullCopy.end());
+
+            VarStorage notInitNull;
+            for (const auto &var : nullCopy)
+            {
+                bool found = false;
+                for (const auto &initted : notNullCopy)
+                {
+                    if (var.Name() == initted.Name())
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    notInitNull.push_back(var);
+                }
+            }
+
+            //write formulae.
+            int size = notInitNull.size();
+            // std::cout << "Null: " << nullCopy.size() <<
+            //              ", notNull: " << notNullCopy.size() <<
+            //              ", diff: " << size << std::endl;
+            if (!size)
+            {
+                continue;
+            }
+            FormulaStorage f = nullState.formulae;
+            for( int i = 0; i < size; ++i )
+            {
+                std::shared_ptr<BinarySMT> form(new BinarySMT(var, notInitNull[ i ], EqualSMT, false));
+                f.push_back(form);
+            }
+
+            auto fileName = PrintSMT(iSat, f);
+
+            auto solverResult = runSolver(fileName);
+
+            if( solverResult.find("sat") != -1 )
+            {
+                DefectStorage::Instance().AddDefect(var.Name(), var.getLocation());
+            }
+            ++iSat;
+        }
+    }
+}
+
 
 bool FSM::MatchEvents( FSMID stateID )
 {
@@ -215,6 +280,8 @@ int FSM::StateToLeaf( int leafId, const StateFSM &newState, const std::string &p
     MoveVector(leaf.allocPointers, s.allocPointers);
     MoveVector(leaf.delArrays, s.delArrays);
     MoveVector(leaf.delPointers, s.delPointers);
+    MoveVector(leaf.nullPtrs, s.nullPtrs);
+    MoveVector(leaf.notNullPtrs, s.notNullPtrs);
 
     // сохраняем новое состояние и переход до него
     states.push_back(s);

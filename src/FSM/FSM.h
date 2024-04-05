@@ -24,6 +24,8 @@ public:
 
     void AddDeleteState( const VersionedVariable &var, bool arrayForm );
 
+    void AddUseClassPtrState(const VersionedVariable &var);
+
     void ProcessReturnNone();
 
     inline void SetReturnVarName( const std::set<std::string> &varName )

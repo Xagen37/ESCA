@@ -31,6 +31,8 @@ struct StateFSM
     VarStorage allocArrays;
     VarStorage delPointers;
     VarStorage delArrays;
+    VarStorage nullPtrs;
+    VarStorage notNullPtrs;
 
     /// Хранилище формул, которые в дальнейшем будут переданы в smt решатель
     FormulaStorage formulae;

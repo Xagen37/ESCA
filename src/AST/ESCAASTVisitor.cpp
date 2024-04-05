@@ -3,6 +3,8 @@
 #include <vector>
 #include <set>
 
+#include <iostream>
+
 #include <llvm/Support/raw_ostream.h>
 #include <clang/AST/PrettyPrinter.h>
 #include <clang/AST/ASTContext.h>
@@ -124,7 +126,7 @@ bool ESCAASTVisitor::ProcessStmt( clang::Stmt *stmt )
         return true;
     }
 
-    //stmt->dump();
+    // stmt->dump();
     using namespace clang;
 
     if( auto compSt = dyn_cast<CompoundStmt>(stmt))
@@ -210,7 +212,26 @@ bool ESCAASTVisitor::ProcessStmt( clang::Stmt *stmt )
     }
     else if( auto rhsRefExpr = dyn_cast<CallExpr>(stmt))
     {
+        // stmt->dump();
         ProcessCallFunction(rhsRefExpr);
+    }
+    else if (auto memExpr = dyn_cast<MemberExpr>(stmt))  // check a.x and a->x
+    {
+        if (memExpr->getBase()->getType()->isAnyPointerType())
+        {
+            if (auto casted = dyn_cast<ImplicitCastExpr>(memExpr->getBase()))
+            {
+                if (auto declRef = dyn_cast<DeclRefExpr>(casted->getSubExprAsWritten()))
+                {
+                    std::string varName = declRef->getFoundDecl()->getNameAsString();
+                    std::string loc = getLocation(stmt);
+                    // std::cout << "Found sus var: " << varName << " at pos: " << loc << std::endl;
+                    context.AddToLast(
+                        new Target::UseVarClassPtr(varName, loc)
+                    );
+                }
+            }
+        }
     }
 
     return true;
@@ -248,6 +269,26 @@ bool ESCAASTVisitor::ProcessCompound( clang::CompoundStmt *body, bool createOnSt
 bool ESCAASTVisitor::ProcessCallFunction( clang::CallExpr *rhsRefExpr )
 {
     using namespace clang;
+
+    if (auto memberCallExpr = dyn_cast<CXXMemberCallExpr>(rhsRefExpr))
+    {
+        auto caller = memberCallExpr->getImplicitObjectArgument();
+        if (caller->getType()->isAnyPointerType())
+        {
+            if (auto casted = dyn_cast<ImplicitCastExpr>(caller))
+            {
+                if (auto declRef = dyn_cast<DeclRefExpr>(casted->getSubExprAsWritten()))
+                {
+                    std::string varName = declRef->getFoundDecl()->getNameAsString();
+                    std::string loc = getLocation(rhsRefExpr);
+                    // std::cout << "Found sus var: " << varName << " at pos: " << loc << std::endl;
+                    context.AddToLast(
+                        new Target::UseVarClassPtr(varName, loc)
+                    );
+                }
+            }
+        }
+    }
 
     auto callee = rhsRefExpr->getCallee();
     if( auto memExpr = dyn_cast<MemberExpr>(callee))
@@ -333,6 +374,16 @@ bool ESCAASTVisitor::ProcessAssignment( const clang::Stmt *init, const std::stri
         init = castSt->getSubExpr();
     }
 
+    // nullptr check
+    // T *a_ptr = nullptr;
+    if( auto rhsRefExpr = dyn_cast<CXXNullPtrLiteralExpr>(init))
+    {
+        // std::cout << "Nullptr Literal spotted" << std::endl;
+        context.AddToLast(
+            new Target::NullAssign(lhsName, getLocation(init))
+        );
+    }
+
 
     // для указателей
     // пример:
@@ -375,6 +426,7 @@ bool ESCAASTVisitor::ProcessAssignment( const clang::Stmt *init, const std::stri
             return true;
         }
     }
+
     //ref->get
     return true;
 
